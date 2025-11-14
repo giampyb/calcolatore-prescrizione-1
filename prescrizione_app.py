@@ -1,4 +1,4 @@
-streamlit as st
+import streamlit as st
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 import math
