@@ -39,12 +39,22 @@ st.markdown("""
     .big-date { font-size: 24px; font-weight: bold; display: block; }
     .label-result { font-size: 16px; font-weight: 600; }
     
-    /* Forza sfondo chiaro */
+    /* Forza sfondo BEIGE */
     .stApp {
-        background-color: white;
+        background-color: #F5F5DC !important; /* Beige */
     }
     body[data-theme="dark"] .stApp {
-        background-color: white;
+        background-color: #F5F5DC !important; /* Beige */
+    }
+
+    /* Sfondo BIANCO per i widget di input */
+    .stNumberInput input, 
+    .stDateInput input, 
+    .stSelectbox div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important; /* Bianco */
+    }
+    div[data-baseweb="select"] > div {
+        background-color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -118,8 +128,8 @@ with sosp_col2:
     # --- CORREZIONE: Inizializzazione corretta con DataFrame pandas ---
     if 'sospensioni_df' not in st.session_state:
         st.session_state.sospensioni_df = pd.DataFrame({
-            "Inizio": pd.Series(dtype='object'),
-            "Fine": pd.Series(dtype='object')
+            "Inizio": pd.Series(dtype='datetime64[ns]'),  # <-- CORRETTO
+            "Fine": pd.Series(dtype='datetime64[ns]')    # <-- CORRETTO
         })
 
     edited_df = st.data_editor(
