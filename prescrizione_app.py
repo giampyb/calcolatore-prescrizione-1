@@ -4,40 +4,39 @@ from dateutil.relativedelta import relativedelta
 import math
 import pandas as pd
 
-# --- FUNZIONE HELPER PER ANNI/MESI ---
-def mesi_in_anni_mesi(tot_mesi):
-    """Converte un numero totale di mesi in una stringa 'X anni e Y mesi'."""
+# --- NUOVA FUNZIONE HELPER PER CALCOLO IBRIDO ---
+def format_hybrid_time(float_mesi):
+    """Converte mesi fluttuanti (es. 2.666) in stringa 'X mesi e Y giorni'."""
     try:
-        tot_mesi = int(tot_mesi)
-        anni = tot_mesi // 12
-        mesi = tot_mesi % 12
-        if anni > 0:
-            return f"{anni} {'anno' if anni == 1 else 'anni'} e {mesi} {'mese' if mesi == 1 else 'mesi'}"
-        else:
-            return f"{mesi} {'mese' if mesi == 1 else 'mesi'}"
-    except Exception:
-        return ""
-
-# --- NUOVA FUNZIONE HELPER PER GIORNI (BASE 30) ---
-def giorni_in_mesi_giorni(tot_giorni):
-    """Converte giorni (base 30) in 'X mesi e Y giorni' (arr. per difetto)."""
-    try:
-        tot_giorni = int(tot_giorni)
-        mesi = tot_giorni // 30
-        giorni = tot_giorni % 30
+        mesi_int = math.floor(float_mesi)
+        giorni = math.floor((float_mesi - mesi_int) * 30)
         
-        if mesi > 0:
-            anni = mesi // 12
-            mesi_rimanenti = mesi % 12
-            if anni > 0:
-                return f"{anni} {'anno' if anni == 1 else 'anni'}, {mesi_rimanenti} {'mese' if mesi_rimanenti == 1 else 'mesi'} e {giorni} {'giorno' if giorni == 1 else 'giorni'}"
-            else:
-                 return f"{mesi} {'mese' if mesi == 1 else 'mesi'} e {giorni} {'giorno' if giorni == 1 else 'giorni'}"
-        else:
-            return f"{giorni} {'giorno' if giorni == 1 else 'giorni'}"
-    except Exception:
-        return ""
+        anni = mesi_int // 12
+        mesi_rimanenti = mesi_int % 12
+        
+        parts = []
+        if anni > 0:
+            parts.append(f"{anni} {'anno' if anni == 1 else 'anni'}")
+        if mesi_rimanenti > 0:
+            parts.append(f"{mesi_rimanenti} {'mese' if mesi_rimanenti == 1 else 'mesi'}")
+        
+        # Aggiunge i giorni solo se ci sono, o se è l'unico valore
+        if giorni > 0:
+            parts.append(f"{giorni} {'giorno' if giorni == 1 else 'giorni'}")
+        
+        if not parts:
+            return "0 giorni"
+        
+        # Logica di congiunzione
+        if len(parts) == 1:
+            return parts[0]
+        if len(parts) == 2:
+            return f"{parts[0]} e {parts[1]}"
+        if len(parts) == 3: # Max caso: Anni, Mesi e Giorni
+            return f"{parts[0]}, {parts[1]} e {parts[2]}"
 
+    except Exception:
+        return "N/A"
 
 # --- Configurazione Pagina ---
 st.set_page_config(
@@ -199,7 +198,7 @@ with c3:
     
     cap_val = 1.25
     if "1/2" in cap_label: cap_val = 1.5
-    elif "2/3" in cap_label: cap_val = 1.66666
+    elif "2/3" in cap_label: cap_val = 1.6666666667 # Manteniamo precisione
     elif "Doppio" in cap_label: cap_val = 2.0
 
 # --- SOSPENSIONI ---
@@ -251,48 +250,55 @@ with sosp_col2:
         st.rerun()
 
 
-# --- LOGICA DI CALCOLO (MODIFICATA PER GIORNI) ---
+# --- LOGICA DI CALCOLO (MODIFICATA PER CALCOLO IBRIDO) ---
 if st.button("CALCOLA PRESCRIZIONE", use_container_width=True, type="primary"):
     
     logs = []
     
-    pena_base_mesi = (pena_anni * 12) + pena_mesi
-    # --- CONVERSIONE IN GIORNI (BASE 30) ---
-    pena_base_giorni = pena_base_mesi * 30
-    logs.append(f"Pena edittale base: {pena_base_mesi} mesi ({mesi_in_anni_mesi(pena_base_mesi)}) -> <b>{pena_base_giorni} giorni</b> (base 30)")
+    # --- CALCOLO IBRIDO: Mesi e Giorni (da decimali) ---
+    
+    # 1. Pena base (come float)
+    pena_base_mesi_float = float((pena_anni * 12) + pena_mesi)
+    logs.append(f"Pena edittale base: <b>{format_hybrid_time(pena_base_mesi_float)}</b> ({pena_base_mesi_float:.2f} mesi)")
 
+    # 2. Aumento Recidiva (calcolo su float)
     if cap_val == 1.5:
-        aumento_giorni = math.floor(pena_base_giorni * 0.5) # Arrotonda per difetto
-        pena_base_giorni += aumento_giorni
-        logs.append(f"Aumento Recidiva (+1/2) su base: +{aumento_giorni} giorni -> Nuova base: <b>{pena_base_giorni} giorni</b> ({giorni_in_mesi_giorni(pena_base_giorni)})")
+        aumento_float = pena_base_mesi_float * 0.5
+        pena_base_mesi_float += aumento_float
+        logs.append(f"Aumento Recidiva (+1/2) su base: +{format_hybrid_time(aumento_float)} -> Nuova base: <b>{format_hybrid_time(pena_base_mesi_float)}</b>")
     elif 1.6 < cap_val < 1.7:
-        aumento_giorni = math.floor(pena_base_giorni * (2/3)) # Arrotonda per difetto
-        pena_base_giorni += aumento_giorni
-        logs.append(f"Aumento Recidiva (+2/3) su base: +{aumento_giorni} giorni -> Nuova base: <b>{pena_base_giorni} giorni</b> ({giorni_in_mesi_giorni(pena_base_giorni)})")
+        aumento_float = pena_base_mesi_float * (2/3)
+        pena_base_mesi_float += aumento_float
+        logs.append(f"Aumento Recidiva (+2/3) su base: +{format_hybrid_time(aumento_float)} -> Nuova base: <b>{format_hybrid_time(pena_base_mesi_float)}</b>")
     elif cap_val == 2.0:
-        aumento_giorni = pena_base_giorni
-        pena_base_giorni += aumento_giorni
-        logs.append(f"Aumento Abitualità (+100%) su base: +{aumento_giorni} giorni -> Nuova base: <b>{pena_base_giorni} giorni</b> ({giorni_in_mesi_giorni(pena_base_giorni)})")
+        aumento_float = pena_base_mesi_float
+        pena_base_mesi_float += aumento_float
+        logs.append(f"Aumento Abitualità (+100%) su base: +{format_hybrid_time(aumento_float)} -> Nuova base: <b>{format_hybrid_time(pena_base_mesi_float)}</b>")
 
+    # 3. Tentativo (calcolo su float)
     if is_tentato:
-        riduzione_giorni = math.floor(pena_base_giorni / 3) # Arrotonda per difetto
-        pena_base_giorni -= riduzione_giorni
-        logs.append(f"Riduzione Tentativo (-1/3): -{riduzione_giorni} giorni -> Nuova base: <b>{pena_base_giorni} giorni</b> ({giorni_in_mesi_giorni(pena_base_giorni)})")
+        riduzione_float = pena_base_mesi_float / 3.0
+        pena_base_mesi_float -= riduzione_float
+        # Esempio utente: 4 mesi (120gg) - 1/3 -> 2 mesi e 20gg (80gg)
+        # 4.0 - (4.0/3.0) = 4.0 - 1.333... = 2.666...
+        # format_hybrid_time(2.666...) -> 2 mesi e 20 giorni. Corretto.
+        logs.append(f"Riduzione Tentativo (-1/3): -{format_hybrid_time(riduzione_float)} -> Nuova base: <b>{format_hybrid_time(pena_base_mesi_float)}</b>")
 
-    term_ordinario_giorni = pena_base_giorni
-    minimo_mesi = minimo_edittale * 12
-    minimo_giorni = minimo_mesi * 30 # Minimo in giorni
+    # 4. Minimo Edittale (confronto float)
+    term_ordinario_float = pena_base_mesi_float
+    minimo_mesi_float = float(minimo_edittale * 12)
     
-    if term_ordinario_giorni < minimo_giorni:
-        term_ordinario_giorni = minimo_giorni
-        logs.append(f"Tempo Minimo di Prescrizione ({minimo_edittale} anni): Termine portato a <b>{term_ordinario_giorni} giorni</b> ({giorni_in_mesi_giorni(term_ordinario_giorni)})")
+    if term_ordinario_float < minimo_mesi_float:
+        term_ordinario_float = minimo_mesi_float
+        logs.append(f"Tempo Minimo di Prescrizione ({minimo_edittale} anni): Termine portato a <b>{format_hybrid_time(term_ordinario_float)}</b>")
     
+    # 5. Raddoppio (calcolo su float)
     if is_raddoppio:
-        term_ordinario_giorni *= 2
-        logs.append(f"Raddoppio Termini: <b>{term_ordinario_giorni} giorni</b> ({giorni_in_mesi_giorni(term_ordinario_giorni)})")
+        term_ordinario_float *= 2.0
+        logs.append(f"Raddoppio Termini: <b>{format_hybrid_time(term_ordinario_float)}</b>")
 
+    # 6. Sospensioni (calcolo in giorni interi)
     giorni_sosp = 0
-    
     manual_days = 0
     for period_id in st.session_state.active_periods:
         d_start = st.session_state.get(f"start_{period_id}")
@@ -316,19 +322,35 @@ if st.button("CALCOLA PRESCRIZIONE", use_container_width=True, type="primary"):
 
     logs.append(f"<b>TOTALE SOSPENSIONI: {giorni_sosp} giorni</b>")
 
+    # --- CALCOLO DATE FINALI (IBRIDO) ---
+
+    # 7. Prescrizione Ordinaria
     start_ord = data_interruzione if (has_interruzione and data_interruzione) else data_commissione
-    # --- CALCOLO DATA CON GIORNI ---
-    data_ord_base = start_ord + timedelta(days=term_ordinario_giorni)
-    data_ord_finale = data_ord_base + timedelta(days=giorni_sosp)
     
-    term_max_giorni = math.floor(term_ordinario_giorni * cap_val) # Arrotonda per difetto
+    # Separa mesi interi e giorni frazionari
+    ord_mesi_int = math.floor(term_ordinario_float)
+    ord_giorni_extra = math.floor((term_ordinario_float - ord_mesi_int) * 30)
     
-    logs.append(f"Calcolo termine massimo (Art. 161): {term_ordinario_giorni} giorni * {cap_val:.2f} ({cap_label}) = <b>{term_max_giorni} giorni</b> ({giorni_in_mesi_giorni(term_max_giorni)})")
+    data_ord_base = start_ord + relativedelta(months=ord_mesi_int)
+    # Somma i giorni frazionari ai giorni di sospensione
+    data_ord_finale = data_ord_base + timedelta(days=(ord_giorni_extra + giorni_sosp))
+    
+    
+    # 8. Prescrizione Massima
+    term_max_float = term_ordinario_float * cap_val
+    
+    # Separa mesi interi e giorni frazionari
+    max_mesi_int = math.floor(term_max_float)
+    max_giorni_extra = math.floor((term_max_float - max_mesi_int) * 30)
+    
+    logs.append(f"Calcolo termine massimo (Art. 161): {format_hybrid_time(term_ordinario_float)} * {cap_val:.2f} ({cap_label}) = <b>{format_hybrid_time(term_max_float)}</b>")
 
-    # --- CALCOLO DATA CON GIORNI ---
-    data_max_base = data_commissione + timedelta(days=term_max_giorni)
-    data_max_finale = data_max_base + timedelta(days=giorni_sosp)
+    data_max_base = data_commissione + relativedelta(months=max_mesi_int)
+    # Somma i giorni frazionari ai giorni di sospensione
+    data_max_finale = data_max_base + timedelta(days=(max_giorni_extra + giorni_sosp))
 
+
+    # --- Risultati ---
     st.markdown("---")
     res_col1, res_col2 = st.columns(2)
     
