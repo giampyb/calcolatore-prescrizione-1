@@ -4,6 +4,20 @@ from dateutil.relativedelta import relativedelta
 import math
 import pandas as pd
 
+# --- FUNZIONE HELPER PER ANNI/MESI ---
+def mesi_in_anni_mesi(tot_mesi):
+    """Converte un numero totale di mesi in una stringa 'X anni e Y mesi'."""
+    try:
+        tot_mesi = int(tot_mesi)
+        anni = tot_mesi // 12
+        mesi = tot_mesi % 12
+        if anni > 0:
+            return f"{anni} {'anno' if anni == 1 else 'anni'} e {mesi} {'mese' if mesi == 1 else 'mesi'}"
+        else:
+            return f"{mesi} {'mese' if mesi == 1 else 'mesi'}"
+    except Exception:
+        return ""
+
 # --- Configurazione Pagina ---
 st.set_page_config(
     page_title="Calcolatore Prescrizione",
@@ -46,7 +60,7 @@ st.markdown("""
         color: #000000 !important; /* TESTO NERO */
     }
     
-    /* --- NUOVA REGOLA: Forza testo nero su tutti gli elementi comuni --- */
+    /* --- Forza testo nero su tutti gli elementi comuni --- */
     h1, h2, h3, h4, h5, h6, label, span, p, .st-emotion-cache-1jic0ts p,
     .st-emotion-cache-16idsys p, .st-emotion-cache-1h9ot3c {
         color: #000000 !important;
@@ -69,22 +83,43 @@ st.markdown("""
         color: #0c4a6e !important; /* Mantiene il testo blu scuro per st.info */
     }
     
-    /* --- NUOVA REGOLA: Bottoni standard (es. "Aggiungi periodo") bianchi --- */
+    /* --- Bottoni standard (es. "Aggiungi periodo") bianchi --- */
     div[data-testid="stButton"] > button {
         background-color: #FFFFFF !important; /* Sfondo bianco */
         color: #000000 !important;        /* Testo nero */
         border: 1px solid #CCCCCC !important; /* Bordo grigio chiaro */
     }
 
-    /* --- NUOVA REGOLA: Checkbox bianchi --- */
+    /* --- MODIFICA CHECKBOX --- */
+    
+    /* 1. Rende il container del checkbox (la riga intera) bianco */
     div[data-testid="stCheckbox"] {
         background-color: #FFFFFF !important;
         border: 1px solid #CCCCCC !important;
-        padding-left: 10px; /* Aggiunge un po' di spazio */
-        border-radius: 8px; /* Angoli arrotondati */
-        padding-top: 5px; /* Spazio sopra */
-        padding-bottom: 5px; /* Spazio sotto */
+        padding-left: 10px; 
+        border-radius: 8px; 
+        padding-top: 5px; 
+        padding-bottom: 5px; 
     }
+    
+    /* 2. Imposta il quadratino (quando NON spuntato) a GRIGIO */
+    div[data-testid="stCheckbox"] input:not(:checked) + div {
+        background-color: #EEEEEE !important; /* Grigio Chiaro */
+        border: 1px solid #AAAAAA !important;
+    }
+    
+    /* 3. Imposta il quadratino (quando SPUNTATO) a ROSSO */
+    div[data-testid="stCheckbox"] input:checked + div {
+        background-color: #D32F2F !important; /* Rosso */
+        border-color: #B71C1C !important;
+    }
+    
+    /* 4. Rende il segno di spunta bianco (visibile sul rosso) */
+    div[data-testid="stCheckbox"] input:checked + div svg path {
+        stroke: white !important;
+    }
+    /* --- FINE MODIFICA CHECKBOX --- */
+
 
     /* Allinea il pulsante di rimozione ❌ */
     .st-emotion-cache-1cflm81 {
@@ -131,11 +166,9 @@ with c1:
     is_tentato = st.checkbox("Reato Tentato (Art. 56)")
     is_raddoppio = st.checkbox("Raddoppio Termini")
 with c2:
-    # --- ETICHETTA MODIFICATA ---
     tipo_reato = st.selectbox("Tipo Reato (Minimo)", ["Delitto (Min 6 anni)", "Contravvenzione (Min 4 anni)"])
     minimo_edittale = 6 if "Delitto" in tipo_reato else 4
 with c3:
-    # --- ETICHETTA MODIFICATA ---
     cap_label = st.selectbox("Aumento recidiva (Art. 161 c.p.)", [
         "Standard (+1/4)", 
         "Recidiva Art. 99 c. 2,4,5 (+1/2)", 
@@ -203,49 +236,46 @@ if st.button("CALCOLA PRESCRIZIONE", use_container_width=True, type="primary"):
     logs = []
     
     pena_base_mesi = (pena_anni * 12) + pena_mesi
-    logs.append(f"Pena edittale base: {pena_base_mesi} mesi")
+    # MODIFICA 1: Aggiunto (anni e mesi)
+    logs.append(f"Pena edittale base: {pena_base_mesi} mesi ({mesi_in_anni_mesi(pena_base_mesi)})")
 
     if cap_val == 1.5:
         aumento = math.ceil(pena_base_mesi * 0.5)
         pena_base_mesi += aumento
-        logs.append(f"Aumento Recidiva (+1/2) su base: +{aumento} mesi -> Nuova base: {pena_base_mesi}")
+        logs.append(f"Aumento Recidiva (+1/2) su base: +{aumento} mesi -> Nuova base: {pena_base_mesi} mesi ({mesi_in_anni_mesi(pena_base_mesi)})")
     elif 1.6 < cap_val < 1.7:
         aumento = math.ceil(pena_base_mesi * (2/3))
         pena_base_mesi += aumento
-        logs.append(f"Aumento Recidiva (+2/3) su base: +{aumento} mesi -> Nuova base: {pena_base_mesi}")
+        logs.append(f"Aumento Recidiva (+2/3) su base: +{aumento} mesi -> Nuova base: {pena_base_mesi} mesi ({mesi_in_anni_mesi(pena_base_mesi)})")
     elif cap_val == 2.0:
         aumento = pena_base_mesi
         pena_base_mesi += aumento
-        logs.append(f"Aumento Abitualità (+100%) su base: +{aumento} mesi -> Nuova base: {pena_base_mesi}")
+        logs.append(f"Aumento Abitualità (+100%) su base: +{aumento} mesi -> Nuova base: {pena_base_mesi} mesi ({mesi_in_anni_mesi(pena_base_mesi)})")
 
     if is_tentato:
         riduzione = math.ceil(pena_base_mesi / 3)
         pena_base_mesi -= riduzione
-        logs.append(f"Riduzione Tentativo (-1/3): -{riduzione} mesi -> Nuova base: {pena_base_mesi}")
+        logs.append(f"Riduzione Tentativo (-1/3): -{riduzione} mesi -> Nuova base: {pena_base_mesi} mesi ({mesi_in_anni_mesi(pena_base_mesi)})")
 
     term_ordinario = pena_base_mesi
     minimo_mesi = minimo_edittale * 12
     if term_ordinario < minimo_mesi:
         term_ordinario = minimo_mesi
-        # --- ETICHETTA MODIFICATA ---
-        logs.append(f"Tempo Minimo di Prescrizione ({minimo_edittale} anni): Termine portato a {term_ordinario} mesi")
+        logs.append(f"Tempo Minimo di Prescrizione ({minimo_edittale} anni): Termine portato a {term_ordinario} mesi ({mesi_in_anni_mesi(term_ordinario)})")
     
     if is_raddoppio:
         term_ordinario *= 2
-        logs.append(f"Raddoppio Termini: {term_ordinario} mesi")
+        logs.append(f"Raddoppio Termini: {term_ordinario} mesi ({mesi_in_anni_mesi(term_ordinario)})")
 
     giorni_sosp = 0
     
-    # --- NUOVA LOGICA: Legge i dati dai widget st.date_input ---
     manual_days = 0
     for period_id in st.session_state.active_periods:
         d_start = st.session_state.get(f"start_{period_id}")
         d_end = st.session_state.get(f"end_{period_id}")
             
-        # Controlla se le date sono valide (non None)
         if d_start and d_end:
             if d_end >= d_start:
-                # Calcolo giorni inclusivo (include sia inizio che fine)
                 delta = (d_end - d_start).days + 1
                 manual_days += delta
                 logs.append(f"Sosp. Manuale {d_start.strftime('%d/%m/%Y')} - {d_end.strftime('%d/%m/%Y')}: {delta} giorni")
@@ -267,6 +297,10 @@ if st.button("CALCOLA PRESCRIZIONE", use_container_width=True, type="primary"):
     data_ord_finale = data_ord_base + timedelta(days=giorni_sosp)
     
     term_max_mesi = math.ceil(term_ordinario * cap_val)
+    
+    # MODIFICA 2: Aggiunto log per calcolo termine massimo
+    logs.append(f"Calcolo termine massimo (Art. 161): {term_ordinario} mesi * {cap_val:.2f} ({cap_label}) = {term_max_mesi} mesi ({mesi_in_anni_mesi(term_max_mesi)})")
+
     data_max_base = data_commissione + relativedelta(months=term_max_mesi)
     data_max_finale = data_max_base + timedelta(days=giorni_sosp)
 
