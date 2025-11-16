@@ -106,12 +106,14 @@ st.markdown("""
     }
     
     /* --- Bottoni standard (es. "Aggiungi periodo") bianchi --- */
-    div[data-testid="stButton"] > button {
+    /* Questa regola si applica ORA anche al pulsante Info Popover */
+    div[data-testid="stButton"] > button,
+    button[data-testid="stPopoverTrigger"] {
         background-color: #FFFFFF !important; /* Sfondo bianco */
         color: #000000 !important;        /* Testo nero */
         border: 1px solid #CCCCCC !important; /* Bordo grigio chiaro */
     }
-
+    
     /* --- MODIFICA CHECKBOX --- */
     
     /* 1. Rende il container del checkbox (la riga intera) bianco */
@@ -147,6 +149,19 @@ st.markdown("""
     .st-emotion-cache-1cflm81 {
         padding-top: 29px;
     }
+    
+    /* --- Sfondo Chiaro per il Contenuto del Popover --- */
+    div[data-testid="stPopoverContent"] {
+        background-color: #FFFFFF !important; /* Sfondo bianco */
+        color: #000000 !important;
+    }
+    /* Forza il testo nero anche dentro il markdown del popover */
+    div[data-testid="stPopoverContent"] p, 
+    div[data-testid="stPopoverContent"] li,
+    div[data-testid="stPopoverContent"] strong {
+        color: #000000 !important;
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -188,63 +203,61 @@ c1, c2, c3 = st.columns(3)
 with c1:
     is_tentato = st.checkbox("Reato Tentato (Art. 56)")
 
-    # --- MODIFICA: Layout a colonne per pulsante Info ---
-    info_col1, info_col2 = st.columns([3, 1])
-    with info_col1:
-        is_raddoppio = st.checkbox("Raddoppio Termini")
-    with info_col2:
-        with st.popover("Info"):
-            st.markdown("""
-            Il raddoppio dei termini della prescrizione si applica ai seguenti reati:
-
-            **1. Art. 157 c.p. comma 6**
-            * Art. 375, c. 3, c.p. (Frode in processo penale e depistaggio, aggravato)
-            * Art. 416, c.p. (finalizzato a reati di falso artt. 453, 454, 455, 460, 461, 490, 491, 493-bis)
-            * Art. 416, c. 6, c.p. (finalizzato a reati contro la persona, artt. 600, 601, 602)
-            * Art. 572 c.p. (Maltrattamenti contro familiari e conviventi)
-            * Art. 589, c. 2 e 3, c.p. (Omicidio colposo aggravato, violazione norme circolazione stradale o sicurezza lavoro)
-            * Art. 589-bis c.p. (Omicidio stradale)
-            * Art. 590-bis c.p. (Lesioni personali stradali gravi o gravissime)
-            * Art. 600 c.p. (Riduzione o mantenimento in schiavitù)
-            * Art. 600-bis c.p. (Prostituzione minorile)
-            * Art. 600-ter c.p. (Pornografia minorile)
-            * Art. 600-quater c.p. (Detenzione di materiale pornografico)
-            * Art. 600-quater.1 c.p. (Pornografia virtuale)
-            * Art. 600-quinquies c.p. (Iniziative turistiche per sfruttamento prostituzione minorile)
-            * Art. 601 c.p. (Tratta di persone)
-            * Art. 602 c.p. (Acquisto e alienazione di schiavi)
-            * Art. 609-bis c.p. (Violenza sessuale)
-            * Art. 609-ter c.p. (Violenza sessuale aggravata)
-            * Art. 609-quater c.p. (Atti sessuali con minorenne)
-            * Art. 609-quinquies c.p. (Corruzione di minorenne)
-            * Art. 609-octies c.p. (Violenza sessuale di gruppo)
-            * Art. 609-undecies c.p. (Adescamento di minorenni)
-            * Art. 612-bis c.p. (Atti persecutori)
-
-            **2. Reati contro l'ambiente (Titolo VI-bis c.p.)**
-            * Art. 452-bis c.p. (Inquinamento ambientale)
-            * Art. 452-ter c.p. (Morte o lesioni come conseguenza)
-            * Art. 452-quater c.p. (Disastro ambientale)
-            * Art. 452-quinquies c.p. (Delitti colposi contro l'ambiente)
-            * Art. 452-sexies c.p. (Traffico e abbandono di materiale ad alta radioattività)
-            * Art. 452-septies c.p. (Impedimento del controllo)
-            * Art. 452-terdecies c.p. (Omessa bonifica)
-
-            **3. Reati di criminalità organizzata (Art. 51, c. 3-bis, c.p.p.)**
-            * Art. 416-bis c.p. (Associazione di tipo mafioso)
-            * Art. 416-ter c.p. (Scambio elettorale politico-mafioso)
-            * Art. 630 c.p. (Sequestro di persona a scopo di estorsione)
-            * Art. 416 c.p. (Associazione per delinquere) finalizzata a specifici delitti (es. immigrazione clandestina, contraffazione)
-            * Art. 74 D.P.R. 309/90 (Associazione finalizzata al traffico di stupefacenti)
-            * Art. 291-quater D.P.R. 43/73 (Associazione finalizzata al contrabbando di T.L.E.)
-            * Art. 452-quaterdecies c.p. (Attività organizzate per il traffico illecito di rifiuti)
-            * Delitti commessi con aggravante del metodo mafioso (Art. 416-bis.1 c.p.)
-
-            **4. Reati con finalità di terrorismo (Art. 51, c. 3-quater, c.p.p.)**
-            * Art. 270-bis c.p. (Associazioni con finalità di terrorismo)
-            * Tutti i delitti commessi con l'aggravante della finalità di terrorismo (Art. 270-sexies c.p.)
-            """)
+    # --- MODIFICA: Layout Raddoppio Termini (più leggibile) ---
+    is_raddoppio = st.checkbox("Raddoppio Termini")
     
+    # Pulsante Popover sulla sua riga, che usa lo stile bianco
+    with st.popover("ℹ️ Info Raddoppio", use_container_width=True):
+        st.markdown("""
+        Il raddoppio dei termini della prescrizione si applica ai seguenti reati:
+
+        **1. Art. 157 c.p. comma 6**
+        * Art. 375, c. 3, c.p. (Frode in processo penale e depistaggio, aggravato)
+        * Art. 416, c.p. (finalizzato a reati di falso artt. 453, 454, 455, 460, 461, 490, 491, 493-bis)
+        * Art. 416, c. 6, c.p. (finalizzato a reati contro la persona, artt. 600, 601, 602)
+        * Art. 572 c.p. (Maltrattamenti contro familiari e conviventi)
+        * Art. 589, c. 2 e 3, c.p. (Omicidio colposo aggravato, violazione norme circolazione stradale o sicurezza lavoro)
+        * Art. 589-bis c.p. (Omicidio stradale)
+        * Art. 590-bis c.p. (Lesioni personali stradali gravi o gravissime)
+        * Art. 600 c.p. (Riduzione o mantenimento in schiavitù)
+        * Art. 600-bis c.p. (Prostituzione minorile)
+        * Art. 600-ter c.p. (Pornografia minorile)
+        * Art. 600-quater c.p. (Detenzione di materiale pornografico)
+        * Art. 600-quater.1 c.p. (Pornografia virtuale)
+        * Art. 600-quinquies c.p. (Iniziative turistiche per sfruttamento prostituzione minorile)
+        * Art. 601 c.p. (Tratta di persone)
+        * Art. 602 c.p. (Acquisto e alienazione di schiavi)
+        * Art. 609-bis c.p. (Violenza sessuale)
+        * Art. 609-ter c.p. (Violenza sessuale aggravata)
+        * Art. 609-quater c.p. (Atti sessuali con minorenne)
+        * Art. 609-quinquies c.p. (Corruzione di minorenne)
+        * Art. 609-octies c.p. (Violenza sessuale di gruppo)
+        * Art. 609-undecies c.p. (Adescamento di minorenni)
+        * Art. 612-bis c.p. (Atti persecutori)
+
+        **2. Reati contro l'ambiente (Titolo VI-bis c.p.)**
+        * Art. 452-bis c.p. (Inquinamento ambientale)
+        * Art. 452-ter c.p. (Morte o lesioni come conseguenza)
+        * Art. 452-quater c.p. (Disastro ambientale)
+        * Art. 452-quinquies c.p. (Delitti colposi contro l'ambiente)
+        * Art. 452-sexies c.p. (Traffico e abbandono di materiale ad alta radioattività)
+        * Art. 452-septies c.p. (Impedimento del controllo)
+        * Art. 452-terdecies c.p. (Omessa bonifica)
+
+        **3. Reati di criminalità organizzata (Art. 51, c. 3-bis, c.p.p.)**
+        * Art. 416-bis c.p. (Associazione di tipo mafioso)
+        * Art. 416-ter c.p. (Scambio elettorale politico-mafioso)
+        * Art. 630 c.p. (Sequestro di persona a scopo di estorsione)
+        * Art. 416 c.p. (Associazione per delinquere) finalizzata a specifici delitti (es. immigrazione clandestina, contraffazione)
+        * Art. 74 D.P.R. 309/90 (Associazione finalizzata al traffico di stupefacenti)
+        * Art. 291-quater D.P.R. 43/73 (Associazione finalizzata al contrabbando di T.L.E.)
+        * Art. 452-quaterdecies c.p. (Attività organizzate per il traffico illecito di rifiuti)
+        * Delitti commessi con aggravante del metodo mafioso (Art. 416-bis.1 c.p.)
+
+        **4. Reati con finalità di terrorismo (Art. 51, c. 3-quater, c.p.p.)**
+        * Art. 270-bis c.p. (Associazioni con finalità di terrorismo)
+        * Tutti i delitti commessi con l'aggravante della finalità di terrorismo (Art. 270-sexies c.p.)
+        """)
     # --- FINE MODIFICA ---
 
     # --- Checkbox per Art. 63 c. 4 ---
@@ -432,10 +445,10 @@ if st.button("CALCOLA PRESCRIZIONE", use_container_width=True, type="primary"):
         
     with res_col2:
         st.markdown(f"""
-        <div class_name="box-massima">
+        <div class="box-massima">
             <span class="label-result">Prescrizione Massima</span>
             <span class="big-date">{data_max_finale.strftime('%d/%m/%Y')}</span>
-            <small>(da {data_commissione.strftime('%d/%m/%Y')})</Ssmall>
+            <small>(da {data_commissione.strftime('%d/%m/%Y')})</small>
         </div>
         """, unsafe_allow_html=True)
 
